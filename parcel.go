@@ -87,7 +87,7 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 		return err
 	}
 	if currentStatus != ParcelStatusRegistered {
-		return err
+		return fmt.Errorf("can't SET new address for number:%d status is %s", number, currentStatus)
 	} else {
 		_, err = s.db.Exec("UPDATE parcel SET address =:address WHERE number =:number",
 			sql.Named("address", address),
