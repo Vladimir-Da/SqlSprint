@@ -20,11 +20,11 @@ func (s ParcelStore) Add(p Parcel) (int, error) {
 		sql.Named("address", p.Address),
 		sql.Named("created_at", p.CreatedAt))
 	if err != nil {
-		return 0, fmt.Errorf("can't add new datas: %w", err)
+		return 0, err
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
-		return 0, fmt.Errorf("can't find last insert id: %w", err)
+		return 0, err
 	}
 	return int(id), nil
 	// реализуйте добавление строки в таблицу parcel, используйте данные из переменной p
@@ -39,7 +39,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
-		return Parcel{}, fmt.Errorf("can't Scans data:%w", err)
+		return Parcel{}, err
 	}
 	return p, nil
 }
@@ -47,7 +47,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 	row, err := s.db.Query("SELECT Number,Client,Status,Address,created_at FROM parcel WHERE client = :client", sql.Named("client", client))
 	if err != nil {
-		return nil, fmt.Errorf("can't find client:%d , %w", client, err)
+		return nil, err
 	}
 	defer row.Close()
 
@@ -60,7 +60,7 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 		var par Parcel
 		err := row.Scan(&par.Number, &par.Client, &par.Status, &par.Address, &par.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("can't scan data %w", err)
+			return nil, err
 		}
 		res = append(res, par)
 	}
@@ -72,7 +72,7 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 		sql.Named("status", status),
 		sql.Named("number", number))
 	if err != nil {
-		return fmt.Errorf("can't update status:%s from number:%d ,%w", status, number, err)
+		return err
 	}
 	return nil
 }
@@ -83,16 +83,16 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 	var currentStatus string
 	err := row.Scan(&currentStatus)
 	if err != nil {
-		return fmt.Errorf("can't scan status for number:%d, %w", number, err)
+		return err
 	}
 	if currentStatus != ParcelStatusRegistered {
-		return fmt.Errorf("can't change Address for number:%d status is REGISTERED, %w", number, err)
+		return err
 	} else {
 		_, err = s.db.Exec("UPDATE parcel SET Address =:address WHERE Number =:number",
 			sql.Named("address", address),
 			sql.Named("number", number))
 		if err != nil {
-			return fmt.Errorf("can't change Address for number:%d ,%w", number, err)
+			return err
 		}
 
 	}
@@ -108,14 +108,14 @@ func (s ParcelStore) Delete(number int) error {
 	var currentStatus string
 	err := row.Scan(&currentStatus)
 	if err == sql.ErrNoRows {
-		return fmt.Errorf("can't find parcel for number:%d, %w", number, err)
+		return err
 	}
 	if currentStatus != ParcelStatusRegistered {
 		return fmt.Errorf("can't delete row for number:%d status is %s", number, currentStatus)
 	} else {
 		_, err = s.db.Exec("DELETE FROM parcel WHERE Number =:number", sql.Named("number", number))
 		if err != nil {
-			return fmt.Errorf("can't delete row for number:%d ,%w", number, err)
+			return err
 		}
 
 	}
