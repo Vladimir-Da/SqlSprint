@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type ParcelStore struct {
@@ -65,6 +64,10 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 		}
 		res = append(res, par)
 	}
+	err = row.Err()
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -79,48 +82,28 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 }
 
 func (s ParcelStore) SetAddress(number int, address string) error {
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number =:number", sql.Named("number", number))
+	// реализуйте обновление адреса в таблице parcel
+	// менять адрес можно только если значение статуса registered
 
-	var currentStatus string
-	err := row.Scan(&currentStatus)
+	_, err := s.db.Exec("UPDATE parcel SET address =:address WHERE number =:number AND status =:status",
+		sql.Named("address", address),
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 	if err != nil {
 		return err
 	}
-	if currentStatus != ParcelStatusRegistered {
-		return fmt.Errorf("can't SET new address for number:%d status is %s", number, currentStatus)
-	} else {
-		_, err = s.db.Exec("UPDATE parcel SET address =:address WHERE number =:number",
-			sql.Named("address", address),
-			sql.Named("number", number))
-		if err != nil {
-			return err
-		}
-
-	}
-	// реализуйте обновление адреса в таблице parcel
-	// менять адрес можно только если значение статуса registered
 	return nil
 }
 
 func (s ParcelStore) Delete(number int) error {
 	// реализуйте удаление строки из таблицы parcel
 	// удалять строку можно только если значение статуса registered
-	row := s.db.QueryRow("SELECT status FROM parcel WHERE number =:number", sql.Named("number", number))
-	var currentStatus string
-	err := row.Scan(&currentStatus)
-	if err == sql.ErrNoRows {
+
+	_, err := s.db.Exec("DELETE FROM parcel WHERE Number =:number AND status =:status",
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
+	if err != nil {
 		return err
-	}
-	if currentStatus != ParcelStatusRegistered {
-
-		return err // fmt.Errorf("can't delete row for number:%d status is %s", number, currentStatus)
-
-	} else {
-		_, err = s.db.Exec("DELETE FROM parcel WHERE Number =:number", sql.Named("number", number))
-		if err != nil {
-			return err
-		}
-
 	}
 	return nil
 }
